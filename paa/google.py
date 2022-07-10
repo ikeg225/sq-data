@@ -24,10 +24,10 @@ from proxy import Proxy
 logging.basicConfig()
 
 class Google:
-    def __init__(self, header):
+    def __init__(self):
         self.URL = "https://www.google.com/search"
         self.HEADERS = {
-            'User-Agent': header
+            'User-Agent': UserAgent.randomAgent()
         }
         self.proxy = Proxy()
         self.PROXIES = {
@@ -46,6 +46,7 @@ class Google:
             self.NB_REQUESTS_LIMIT, self.NB_REQUESTS_DURATION_LIMIT
         )
 
+
     @retryable(1)
     def search(self, keyword: str) -> Optional[BeautifulSoup]:
         """return html parser of google search result"""
@@ -63,6 +64,19 @@ class Google:
             #print(response.content)
             #raise GoogleSearchRequestFailedError(self.URL, keyword)
         return BeautifulSoup(response.text, "html.parser")
+    
+
+    def get_answer_to_related_questions(self, text):
+        document = self.search(text)
+        if not document:
+            return []
+        try:
+            div_questions = document.find_all("div", class_="related-question-pair")
+            get_text = lambda a: a.text.split('Search for:')[0]
+
+            print(div_questions[0])
+        except Exception:
+            raise RelatedQuestionParserError(text)
 
 
     def _get_related_questions(self, text: str) -> List[str]:
@@ -113,6 +127,11 @@ class Google:
             nb_question_regenerated += 1
         return list(questions)
 
+    def find_iter(self, document):
+        tag = document.find('a', href=True)
+        while tag is not None:
+            yield tag
+            tag = tag.find_next('a', href=True)
 
     def get_answer(self, question: str) -> Dict[str, Any]:
         """
@@ -123,17 +142,26 @@ class Google:
         related_questions = extract_related_questions(document)
         featured_snippet = get_featured_snippet_parser(
                 question, document)
+        
+        youtube = ""
+        for link in self.find_iter(document):
+            ahref = link.get("href", "")
+            if "youtube" in ahref:
+                youtube = ahref
+                break
         if not featured_snippet:
             res = dict(
                 has_answer=False,
                 question=question,
                 related_questions=related_questions,
+                youtube=youtube
             )
         else:
             res = dict(
                 has_answer=True,
                 question=question,
                 related_questions=related_questions,
+                youtube=youtube
             )
             try:
                 res.update(featured_snippet.to_dict())
