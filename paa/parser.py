@@ -209,13 +209,13 @@ class OrderedFeaturedSnippetParser(SimpleFeaturedSnippetParser):
 
     @property
     def snippet_str_body(self):
-        return "\n".join(itemize(self.snippet_data))
+        return "\n".join(self.snippet_data) # itemize(self.snippet_data)
 
     @property
     def snippet_data(self):
         ol_tags = self.tag.find("ol")
         li_tags = ol_tags.findAll("li")
-        return [tag.text for tag in li_tags]
+        return ["<ol>"] + [f"<li>{tag.text}</li>" for tag in li_tags] + ["</ol>"]
 
 
 class UnorderedFeaturedSnippetParser(SimpleFeaturedSnippetParser):
@@ -227,7 +227,7 @@ class UnorderedFeaturedSnippetParser(SimpleFeaturedSnippetParser):
 
     @property
     def snippet_str_body(self):
-        return "\n".join(itemize(self.snippet_data))
+        return "\n".join(self.snippet_data) #itemize(self.snippet_data)
 
     @property
     def response(self):
@@ -237,7 +237,7 @@ class UnorderedFeaturedSnippetParser(SimpleFeaturedSnippetParser):
     def snippet_data(self):
         ul_tag = self.tag.find("ul")
         li_tags = ul_tag.findAll("li")
-        return [tag.text for tag in li_tags]
+        return ["<ul>"] + [f"<li>{tag.text}</li>" for tag in li_tags] + ["</ul>"]
 
 
 class DefinitionFeaturedSnippetParser(SimpleFeaturedSnippetParser):
