@@ -18,7 +18,7 @@ def get_info(question):
             result = google.get_answer(question)
             if not result['related_questions'] or result['has_answer']:
                 return {
-                    "question": question,
+                    "question": question.title(),
                     "answer": re.sub(r"[a-zA-Z]{3} \d{1,2}, \d{4}[\s]*$", "", result['response']),
                     "related": result['related_questions'],
                     "youtube": result['youtube'],
@@ -149,7 +149,13 @@ def make_article(header):
 #google = Google()
 #google.get_answer_to_related_questions("how do arenas switch from hockey to basketball")
 
-print(make_article("how do arenas switch from hockey to basketball"))
-print(make_article("how to clean a dirty basketball"))
+#print(make_article("how do arenas switch from hockey to basketball"))
+#print(make_article("how to clean a dirty basketball"))
+
+#print(make_article("who won by 97 points in college basketball"))
+print(make_article("who was the first national college basketball champion"))
+#print(make_article("why are basketball numbers retired"))
+#print(make_article("what time is the men's basketball game on tonight"))
+#print(make_article("who is michael jordan's favorite basketball player"))
 
 #collection_name.insert_many([item_1,item_2])

@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from operator import attrgetter
 from typing import List, Optional
 from paa.tools import itemize, tabulate, remove_redundant
-
+import json
 
 FEATURED_SNIPPET_ATTRIBUTES = [
     "response", "heading", "title", "link", "displayed_link",
@@ -32,10 +32,17 @@ def is_ol_but_not_a_menu(tag):
 
 
 def get_tag_heading(tag):
-    return (
-        tag.find("div", {"role": "heading", "aria-level": "3"})
-        or tag.find("div", {"role": "heading"})
-    )
+    header_content = tag.find("div", {"role": "heading", "aria-level": "3"})
+    if header_content:
+        tooltip = header_content.find("span", { "role" : "tooltip" })
+        if tooltip:
+            tooltip_content = tooltip.select('span > span')[0]
+            header_content.find("span", { "role" : "tooltip" }).replaceWith(tooltip_content)
+            return header_content
+        else:
+            return header_content
+    else:
+        return tag.find("div", {"role": "heading"})
 
 
 def has_youtube_link(tag):
@@ -166,7 +173,8 @@ class TableFeaturedSnippetParser(SimpleFeaturedSnippetParser):
     def snippet_str_body(self):
         header = self.snippet_data["columns"]
         table = self.snippet_data["values"]
-        return tabulate(header=header, table=table)
+        # return tabulate(header=header, table=table)
+        return f"<ToTable rows={json.dumps([header] + table)} />"
 
     @property
     def response(self):
