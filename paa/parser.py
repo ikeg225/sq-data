@@ -1,9 +1,10 @@
-from bs4.element import Tag
+from bs4.element import Tag, ResultSet
 from bs4 import BeautifulSoup
 from operator import attrgetter
 from typing import List, Optional
 from paa.tools import itemize, tabulate, remove_redundant
 import json
+import re 
 
 FEATURED_SNIPPET_ATTRIBUTES = [
     "response", "heading", "title", "link", "displayed_link",
@@ -32,15 +33,20 @@ def is_ol_but_not_a_menu(tag):
 
 
 def get_tag_heading(tag):
-    header_content = tag.find("div", {"role": "heading", "aria-level": "3"})
+    header_content = tag.find_all("div", {"role": "heading", "aria-level": "3"})
     if header_content:
-        tooltip = header_content.find("span", { "role" : "tooltip" })
-        if tooltip:
-            tooltip_content = tooltip.select('span > span')[0]
-            header_content.find("span", { "role" : "tooltip" }).replaceWith(tooltip_content)
-            return header_content
-        else:
-            return header_content
+        for match in header_content:
+            tooltip = ""
+            try:
+                tooltip = match.find("span", { "role" : "tooltip" })
+            except:
+                "fail: no tooltip"
+            if tooltip:
+                tooltip_content = tooltip.select('span > span')[0]
+                match.find("span", { "role" : "tooltip" }).replaceWith(tooltip_content)
+            else:
+                "no tooltip"
+        return header_content
     else:
         return tag.find("div", {"role": "heading"})
 
@@ -66,9 +72,10 @@ def get_span_text(tag):
 
 class FeaturedSnippetParser(object):
 
-    def __init__(self, text: str, tag: Tag):
+    def __init__(self, text: str, tag: Tag, defsnippet=None):
         self.text = text
         self.tag = tag
+        self.defsnippet = defsnippet
 
     def __getattr__(self, attr):
         if attr in FEATURED_SNIPPET_ATTRIBUTES:
@@ -88,15 +95,16 @@ class FeaturedSnippetParser(object):
 class SimpleFeaturedSnippetParser(FeaturedSnippetParser):
 
     @classmethod
-    def get_instance(self, text, tag):
+    def get_instance(self, text, tag, defsnippet=None):
         if tag.table is not None:
             return TableFeaturedSnippetParser(text, tag)
         if tag.findAll(is_ol_but_not_a_menu):
             return OrderedFeaturedSnippetParser(text, tag)
         if tag.ul is not None:
             return UnorderedFeaturedSnippetParser(text, tag)
-        if get_tag_heading(tag):
-            return DefinitionFeaturedSnippetParser(text, tag)
+        defsnippet = get_tag_heading(tag)
+        if defsnippet:
+            return DefinitionFeaturedSnippetParser(text, tag, defsnippet)
         if has_youtube_link(tag):
             return YoutubeFeaturedSnippetParser(text, tag)
 
@@ -131,8 +139,19 @@ class SimpleFeaturedSnippetParser(FeaturedSnippetParser):
 
     @property
     def heading(self):
-        tag_heading = get_tag_heading(self.tag)
-        return tag_heading.text
+        if self.defsnippet:
+            tag_heading = self.defsnippet
+        else:
+            tag_heading = get_tag_heading(self.tag)
+        dontinclude = {"People also search for"}
+        if type(tag_heading) == ResultSet:
+            new_text = []
+            for match in tag_heading:
+                if not match.text in dontinclude:
+                    new_text.append(re.sub(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}, \d{4}[\s]*$", "", match.text))
+            return '<p>' + '</p><p>'.join(new_text) + '</p>'
+        else:
+            return '<p>' + tag_heading.text + '</p>'
 
     @property
     def snippet_str(self):

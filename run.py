@@ -1,36 +1,61 @@
 import re
 from paa import Google
 from mongoconnect import get_database
+import string
 
 db = get_database()
 articlestruct = db["articlestruct"]
+tag_priority = { "h1": 3, "h2": 2, "h3": 1 }
 
 def to_url(string):
     remove_punc = re.sub('[^A-Za-z0-9\s-]+', '', string.strip())
     return re.sub('[\s]+', '-', remove_punc).lower()
 
-def get_info(question):
+def should_search(question, article_structure, tag):
+    id = to_url(string.capwords(question))
+    if id in article_structure["structure"]:
+        inline = tag_priority[article_structure["structure"][id]["tag"]]
+        toadd = tag_priority[tag]
+        if inline < toadd:
+            return True
+        return False
+    else:
+        return True
+
+def get_info(question, article_structure=None, tag=None):
     printed = False
     tries = 0
-    while not printed:
-        try:
-            google = Google()
-            result = google.get_answer(question)
-            if not result['related_questions'] or result['has_answer']:
-                return {
-                    "question": question.title(),
-                    "answer": re.sub(r"[a-zA-Z]{3} \d{1,2}, \d{4}[\s]*$", "", result['response']),
-                    "related": result['related_questions'],
-                    "youtube": result['youtube'],
-                    "sourcetitle": result['title'],
-                    "sourcelink": result['link']
-                }
-            elif tries == 2:
-                printed = True
-            else:
-                tries += 1
-        except Exception as e:
-            e
+    if article_structure == None or should_search(question, article_structure, tag):
+        while not printed:
+            try:
+                google = Google()
+                result = google.get_answer(question)
+                if result['related_questions'] or result['has_answer']:
+                    if result['has_answer']:
+                        return {
+                            "question": string.capwords(question),
+                            "answer": result['response'],
+                            "related": result['related_questions'],
+                            "youtube": result['youtube'],
+                            "sourcetitle": result['title'],
+                            "sourcelink": result['link']
+                        }
+                    else:
+                        return {
+                            "question": string.capwords(question),
+                            "answer": "",
+                            "related": result['related_questions'],
+                            "youtube": result['youtube'],
+                            "sourcetitle": "",
+                            "sourcelink": ""
+                        }
+
+                elif tries == 5:
+                    printed = True
+                else:
+                    tries += 1
+            except Exception as e:
+                e
     return {}
 
 def duplicate_check(to_check, toadd, tag_priority, article_structure, duplicates, answer, content, youtube, id, question, tag, answer_id, youtube_id, sourcetitle, sourcelink):
@@ -92,7 +117,6 @@ def duplicate_check(to_check, toadd, tag_priority, article_structure, duplicates
                 )
 
 def add_structure(article_structure, duplicates, question, tag, answer, youtube, sourcetitle, sourcelink):
-    tag_priority = { "h1": 3, "h2": 2, "h3": 1 }
     id, content = to_url(question), to_url(answer)
     duplicate_id, duplicate_answer, duplicate_youtube = id in article_structure["structure"], content in duplicates["content"], youtube in duplicates["youtube"]
     if duplicate_id or duplicate_answer or duplicate_youtube:
@@ -131,12 +155,12 @@ def make_article(header):
     article_structure = { "_id": to_url(info["question"]), "structure": {} }
     add_structure(article_structure, duplicates, info["question"], "h1", info["answer"], info["youtube"], info["sourcetitle"], info["sourcelink"])
     for h2 in info["related"]:
-        info_h2 = get_info(h2)
+        info_h2 = get_info(h2, article_structure, "h2")
         if not info_h2:
             continue
         add_structure(article_structure, duplicates, info_h2["question"], "h2", info_h2["answer"], info_h2["youtube"], info_h2["sourcetitle"], info_h2["sourcelink"])
         for h3 in info_h2["related"]:
-            info_h3 = get_info(h3)
+            info_h3 = get_info(h3, article_structure, "h3")
             if not info_h3:
                 continue
             add_structure(article_structure, duplicates, info_h3["question"], "h3", info_h3["answer"], info_h3["youtube"], info_h3["sourcetitle"], info_h3["sourcelink"])
@@ -144,18 +168,19 @@ def make_article(header):
     articlestruct.replace_one( {'_id' : to_url(info["question"])}, article_structure, upsert = True )
 
 
-#for header in ["how do arenas switch from hockey to basketball"]:
 
-#google = Google()
-#google.get_answer_to_related_questions("how do arenas switch from hockey to basketball")
 
-#print(make_article("how do arenas switch from hockey to basketball"))
-#print(make_article("how to clean a dirty basketball"))
-
-#print(make_article("who won by 97 points in college basketball"))
+print(make_article("how do arenas switch from hockey to basketball"))
+print(make_article("how to clean a dirty basketball"))
+print(make_article("who won by 97 points in college basketball"))
 print(make_article("who was the first national college basketball champion"))
-#print(make_article("why are basketball numbers retired"))
-#print(make_article("what time is the men's basketball game on tonight"))
-#print(make_article("who is michael jordan's favorite basketball player"))
+print(make_article("why are basketball numbers retired"))
+print(make_article("what time is the men's basketball game on tonight"))
+print(make_article("who is michael jordan's favorite basketball player"))
+print(make_article("why a backspin on a basketball"))
+print(make_article("why is lego basketball so expensive"))
+print(make_article("what time is the wichita state basketball game"))
+print(make_article("who played wvu men's basketball on tonight"))
+print(make_article("what time is the basketball championship tonight"))
 
-#collection_name.insert_many([item_1,item_2])
+#print(make_article("WHO IS MJ'S FAVORITE PLAYER?"))

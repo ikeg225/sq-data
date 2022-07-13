@@ -73,8 +73,6 @@ class Google:
         try:
             div_questions = document.find_all("div", class_="related-question-pair")
             get_text = lambda a: a.text.split('Search for:')[0]
-
-            print(div_questions[0])
         except Exception:
             raise RelatedQuestionParserError(text)
 
@@ -142,7 +140,6 @@ class Google:
         related_questions = extract_related_questions(document)
         featured_snippet = get_featured_snippet_parser(
                 question, document)
-        
         youtube = ""
         for link in self.find_iter(document):
             ahref = link.get("href", "")
