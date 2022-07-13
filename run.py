@@ -168,19 +168,39 @@ def make_article(header):
     articlestruct.replace_one( {'_id' : to_url(info["question"])}, article_structure, upsert = True )
 
 
+articles_scraped = [
+    "how do arenas switch from hockey to basketball",
+    "how to clean a dirty basketball",
+    "who won by 97 points in college basketball",
+    "who was the first national college basketball champion",
+    "who is michael jordan's favorite basketball player",
+    "who played wvu men's basketball on tonight",
+    "why are basketball numbers retired",
+    "why a backspin on a basketball",
+    "why is lego basketball so expensive",
+    "what time is the men's basketball game on tonight",
+    "what time is the wichita state basketball game",
+    "what time is the basketball championship tonight",
+]
+
+to_scrape = [
+    "what is a jelly layup in basketball",
+    "who did michael jordan play college basketball for",
+    "how much does hong kong mens basketball player make",
+    "how do you become a good basketball player for beginners",
+    "what does a professional basketball player do",
+    "what nba basketball player wrote a best-selling book",
+    "should i play basketball because im tall",
+    "should i play basketball with a jammed finger",
+    "is it good to chew gum while playing basketball",
+    "how much does a portable basketball hoop cost"
+]
 
 
-print(make_article("how do arenas switch from hockey to basketball"))
-print(make_article("how to clean a dirty basketball"))
-print(make_article("who won by 97 points in college basketball"))
-print(make_article("who was the first national college basketball champion"))
-print(make_article("why are basketball numbers retired"))
-print(make_article("what time is the men's basketball game on tonight"))
-print(make_article("who is michael jordan's favorite basketball player"))
-print(make_article("why a backspin on a basketball"))
-print(make_article("why is lego basketball so expensive"))
-print(make_article("what time is the wichita state basketball game"))
-print(make_article("who played wvu men's basketball on tonight"))
-print(make_article("what time is the basketball championship tonight"))
 
-#print(make_article("WHO IS MJ'S FAVORITE PLAYER?"))
+from multiprocessing import Pool
+if __name__ == "__main__":
+    pool = Pool(processes=3)
+    print(pool.map(make_article, to_scrape))
+    pool.close()
+    pool.join()
